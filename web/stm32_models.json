@@ -1,0 +1,190 @@
+{
+  "F0": {
+    "label": "STM32F0 · Cortex-M0 · 48MHz",
+    "models": [
+      { "name": "STM32F030F4P6", "flash": "16KB", "ram": "4KB" },
+      { "name": "STM32F030C8T6", "flash": "64KB", "ram": "8KB" },
+      { "name": "STM32F030R8T6", "flash": "64KB", "ram": "8KB" },
+      { "name": "STM32F051R8T6", "flash": "64KB", "ram": "8KB" },
+      { "name": "STM32F072RBT6", "flash": "128KB", "ram": "16KB" },
+      { "name": "STM32F091RCT6", "flash": "256KB", "ram": "32KB" }
+    ]
+  },
+  "F1": {
+    "label": "STM32F1 · Cortex-M3 · 72MHz",
+    "models": [
+      { "name": "STM32F103C8T6", "flash": "64KB", "ram": "20KB" },
+      { "name": "STM32F103CBT6", "flash": "128KB", "ram": "20KB" },
+      { "name": "STM32F103RBT6", "flash": "128KB", "ram": "20KB" },
+      { "name": "STM32F103RCT6", "flash": "256KB", "ram": "48KB" },
+      { "name": "STM32F103RDT6", "flash": "384KB", "ram": "64KB" },
+      { "name": "STM32F103RET6", "flash": "512KB", "ram": "64KB" },
+      { "name": "STM32F103VCT6", "flash": "256KB", "ram": "48KB" },
+      { "name": "STM32F103VET6", "flash": "512KB", "ram": "64KB" },
+      { "name": "STM32F103ZET6", "flash": "512KB", "ram": "64KB" },
+      { "name": "STM32F103ZCT6", "flash": "256KB", "ram": "48KB" },
+      { "name": "STM32F105RBT6", "flash": "128KB", "ram": "64KB" },
+      { "name": "STM32F107VCT6", "flash": "256KB", "ram": "64KB" }
+    ]
+  },
+  "F2": {
+    "label": "STM32F2 · Cortex-M3 · 120MHz",
+    "models": [
+      { "name": "STM32F205RGT6", "flash": "1MB", "ram": "128KB" },
+      { "name": "STM32F205VGT6", "flash": "1MB", "ram": "128KB" },
+      { "name": "STM32F207VGT6", "flash": "1MB", "ram": "128KB" },
+      { "name": "STM32F207ZGT6", "flash": "1MB", "ram": "128KB" }
+    ]
+  },
+  "F3": {
+    "label": "STM32F3 · Cortex-M4 · 72MHz",
+    "models": [
+      { "name": "STM32F302R8T6", "flash": "64KB", "ram": "16KB" },
+      { "name": "STM32F303RET6", "flash": "512KB", "ram": "64KB" },
+      { "name": "STM32F303VET6", "flash": "512KB", "ram": "64KB" },
+      { "name": "STM32F334R8T6", "flash": "64KB", "ram": "12KB" },
+      { "name": "STM32F373VCT6", "flash": "256KB", "ram": "32KB" }
+    ]
+  },
+  "F4": {
+    "label": "STM32F4 · Cortex-M4F · 180MHz",
+    "models": [
+      { "name": "STM32F401CCU6", "flash": "256KB", "ram": "64KB" },
+      { "name": "STM32F401RET6", "flash": "512KB", "ram": "96KB" },
+      { "name": "STM32F405RGT6", "flash": "1MB", "ram": "192KB" },
+      { "name": "STM32F405VGT6", "flash": "1MB", "ram": "192KB" },
+      { "name": "STM32F407VET6", "flash": "512KB", "ram": "192KB" },
+      { "name": "STM32F407VGT6", "flash": "1MB", "ram": "192KB" },
+      { "name": "STM32F407ZGT6", "flash": "1MB", "ram": "192KB" },
+      { "name": "STM32F407IGH6", "flash": "1MB", "ram": "192KB" },
+      { "name": "STM32F411CEU6", "flash": "512KB", "ram": "128KB" },
+      { "name": "STM32F411RET6", "flash": "512KB", "ram": "128KB" },
+      { "name": "STM32F427ZGT6", "flash": "1MB", "ram": "256KB" },
+      { "name": "STM32F429VGT6", "flash": "1MB", "ram": "256KB" },
+      { "name": "STM32F429ZGT6", "flash": "1MB", "ram": "256KB" },
+      { "name": "STM32F429ZIT6", "flash": "2MB", "ram": "256KB" },
+      { "name": "STM32F429IIT6", "flash": "2MB", "ram": "256KB" },
+      { "name": "STM32F446RET6", "flash": "512KB", "ram": "128KB" },
+      { "name": "STM32F446VET6", "flash": "512KB", "ram": "128KB" }
+    ]
+  },
+  "F7": {
+    "label": "STM32F7 · Cortex-M7 · 216MHz",
+    "models": [
+      { "name": "STM32F722ZET6", "flash": "512KB", "ram": "256KB" },
+      { "name": "STM32F746VGT6", "flash": "1MB", "ram": "320KB" },
+      { "name": "STM32F746ZGT6", "flash": "1MB", "ram": "320KB" },
+      { "name": "STM32F746IGT6", "flash": "1MB", "ram": "320KB" },
+      { "name": "STM32F767VGT6", "flash": "1MB", "ram": "512KB" },
+      { "name": "STM32F767ZGT6", "flash": "1MB", "ram": "512KB" },
+      { "name": "STM32F767ZIT6", "flash": "2MB", "ram": "512KB" },
+      { "name": "STM32F769NIH6", "flash": "2MB", "ram": "512KB" }
+    ]
+  },
+  "G0": {
+    "label": "STM32G0 · Cortex-M0+ · 64MHz",
+    "models": [
+      { "name": "STM32G030F6P6", "flash": "32KB", "ram": "8KB" },
+      { "name": "STM32G031K8T6", "flash": "64KB", "ram": "8KB" },
+      { "name": "STM32G070RBT6", "flash": "128KB", "ram": "36KB" },
+      { "name": "STM32G071RBT6", "flash": "128KB", "ram": "36KB" },
+      { "name": "STM32G0B1RET6", "flash": "512KB", "ram": "144KB" }
+    ]
+  },
+  "G4": {
+    "label": "STM32G4 · Cortex-M4F · 170MHz",
+    "models": [
+      { "name": "STM32G431RBT6", "flash": "128KB", "ram": "32KB" },
+      { "name": "STM32G431VET6", "flash": "512KB", "ram": "128KB" },
+      { "name": "STM32G474RET6", "flash": "512KB", "ram": "128KB" },
+      { "name": "STM32G491RET6", "flash": "512KB", "ram": "112KB" }
+    ]
+  },
+  "H5": {
+    "label": "STM32H5 · Cortex-M33 · 250MHz",
+    "models": [
+      { "name": "STM32H503RBT6", "flash": "128KB", "ram": "32KB" },
+      { "name": "STM32H533RET6", "flash": "512KB", "ram": "272KB" },
+      { "name": "STM32H563VIT6", "flash": "2MB", "ram": "640KB" }
+    ]
+  },
+  "H7": {
+    "label": "STM32H7 · Cortex-M7 · 480MHz",
+    "models": [
+      { "name": "STM32H723ZGT6", "flash": "1MB", "ram": "564KB" },
+      { "name": "STM32H730VBT6", "flash": "128KB", "ram": "564KB" },
+      { "name": "STM32H743VGT6", "flash": "1MB", "ram": "1MB" },
+      { "name": "STM32H743ZIT6", "flash": "2MB", "ram": "1MB" },
+      { "name": "STM32H745ZIT6", "flash": "2MB", "ram": "1MB" },
+      { "name": "STM32H750VBT6", "flash": "128KB", "ram": "1MB" },
+      { "name": "STM32H750IBT6", "flash": "128KB", "ram": "1MB" },
+      { "name": "STM32H753ZIT6", "flash": "2MB", "ram": "1MB" },
+      { "name": "STM32H7A3ZIT6", "flash": "2MB", "ram": "1.4MB" }
+    ]
+  },
+  "L0": {
+    "label": "STM32L0 · Cortex-M0+ · 32MHz",
+    "models": [
+      { "name": "STM32L011F4P6", "flash": "16KB", "ram": "2KB" },
+      { "name": "STM32L053R8T6", "flash": "64KB", "ram": "8KB" },
+      { "name": "STM32L072RBT6", "flash": "128KB", "ram": "20KB" },
+      { "name": "STM32L073RZT6", "flash": "192KB", "ram": "20KB" }
+    ]
+  },
+  "L1": {
+    "label": "STM32L1 · Cortex-M3 · 32MHz",
+    "models": [
+      { "name": "STM32L151C8T6", "flash": "64KB", "ram": "16KB" },
+      { "name": "STM32L151RBT6", "flash": "128KB", "ram": "16KB" },
+      { "name": "STM32L152RET6", "flash": "512KB", "ram": "80KB" }
+    ]
+  },
+  "L4": {
+    "label": "STM32L4 · Cortex-M4F · 80MHz",
+    "models": [
+      { "name": "STM32L412CBU6", "flash": "128KB", "ram": "40KB" },
+      { "name": "STM32L431RCT6", "flash": "256KB", "ram": "64KB" },
+      { "name": "STM32L432KCU6", "flash": "256KB", "ram": "64KB" },
+      { "name": "STM32L476RGT6", "flash": "1MB", "ram": "128KB" },
+      { "name": "STM32L476RET6", "flash": "512KB", "ram": "128KB" },
+      { "name": "STM32L496ZGT6", "flash": "1MB", "ram": "320KB" },
+      { "name": "STM32L4R9ZIT6", "flash": "2MB", "ram": "640KB" }
+    ]
+  },
+  "L5": {
+    "label": "STM32L5 · Cortex-M33 · 110MHz",
+    "models": [
+      { "name": "STM32L552ZET6", "flash": "512KB", "ram": "256KB" },
+      { "name": "STM32L562ZET6", "flash": "512KB", "ram": "256KB" }
+    ]
+  },
+  "U5": {
+    "label": "STM32U5 · Cortex-M33 · 160MHz",
+    "models": [
+      { "name": "STM32U575ZIT6", "flash": "2MB", "ram": "786KB" },
+      { "name": "STM32U585ZIT6", "flash": "2MB", "ram": "786KB" }
+    ]
+  },
+  "WB": {
+    "label": "STM32WB · Cortex-M4+M0+ · 64MHz",
+    "models": [
+      { "name": "STM32WB55CGU6", "flash": "1MB", "ram": "256KB" },
+      { "name": "STM32WB55RGU6", "flash": "1MB", "ram": "256KB" },
+      { "name": "STM32WB55REV6", "flash": "512KB", "ram": "128KB" }
+    ]
+  },
+  "WL": {
+    "label": "STM32WL · Cortex-M4+M0+ · 48MHz",
+    "models": [
+      { "name": "STM32WL55JC1", "flash": "256KB", "ram": "64KB" },
+      { "name": "STM32WL55JCI7", "flash": "256KB", "ram": "64KB" }
+    ]
+  },
+  "C0": {
+    "label": "STM32C0 · Cortex-M0+ · 48MHz",
+    "models": [
+      { "name": "STM32C011F4P6", "flash": "16KB", "ram": "6KB" },
+      { "name": "STM32C031C6T6", "flash": "32KB", "ram": "12KB" }
+    ]
+  }
+}

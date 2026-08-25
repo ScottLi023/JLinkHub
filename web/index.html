@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>JLinkHub - STM32 J-Link 调试控制台</title>
+<link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+
+<!-- ============ 顶栏 ============ -->
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    </svg>
+    <h1>JLinkHub</h1>
+  </div>
+  <div class="topbar-right">
+    <div id="status-chip" class="status-badge" role="status" aria-live="polite">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">未连接</span>
+    </div>
+    <button id="btn-help" class="btn btn-ghost btn-sm" aria-label="帮助" title="帮助">?</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ 左侧：设备配置 ============ -->
+  <aside class="panel config-panel">
+    <h2 class="panel-title">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      设备配置
+    </h2>
+
+    <div class="field">
+      <label for="combo-family">芯片系列</label>
+      <div id="combo-family" class="combo" data-placeholder="输入系列关键词，如 F1、M3、Cortex…"></div>
+      <div class="field-hint" id="family-info">支持模糊搜索，如 F1 / M4 / 72MHz</div>
+    </div>
+
+    <div class="field">
+      <label for="combo-model">具体型号</label>
+      <div id="combo-model" class="combo" data-placeholder="输入型号关键词，如 F103、C8T6、ZET6…"></div>
+      <div class="field-hint" id="model-info">先选择系列，再搜索型号</div>
+    </div>
+
+    <div class="field">
+      <label for="sel-speed">通讯速率 (kHz)</label>
+      <select id="sel-speed" class="select">
+        <option value="1000">1000 kHz</option>
+        <option value="2000">2000 kHz</option>
+        <option value="4000" selected>4000 kHz</option>
+        <option value="8000">8000 kHz</option>
+        <option value="12000">12000 kHz</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="sel-reset">复位模式</label>
+      <select id="sel-reset" class="select">
+        <option value="1">连接时复位 MCU</option>
+        <option value="0">不复位</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <button id="btn-connect" class="btn btn-primary" disabled>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+        </svg>
+        连接
+      </button>
+      <button id="btn-disconnect" class="btn btn-secondary" disabled>断开</button>
+      <button id="btn-reset" class="btn btn-secondary" disabled>复位</button>
+    </div>
+
+    <div id="conn-info" class="conn-info"></div>
+  </aside>
+
+  <!-- ============ 中间：RTT 日志 ============ -->
+  <section class="panel log-panel">
+    <div class="log-toolbar">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+        </svg>
+        RTT 调试日志
+        <span id="log-bytes" class="log-stats"></span>
+      </h2>
+      <div class="log-actions">
+        <label class="check-label" title="每行日志前显示接收时间">
+          <input type="checkbox" id="chk-timestamp">
+          <span>时间戳</span>
+        </label>
+        <label class="check-label" title="日志超过 5000 行时自动保留最新">
+          <input type="checkbox" id="chk-autoscroll" checked>
+          <span>自动滚动</span>
+        </label>
+        <button id="btn-pause" class="btn btn-ghost btn-sm">暂停</button>
+        <button id="btn-clear" class="btn btn-ghost btn-sm">清空</button>
+        <button id="btn-save-log" class="btn btn-ghost btn-sm" title="保存日志为 txt">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          保存
+        </button>
+      </div>
+    </div>
+    <div id="log-terminal" class="terminal" role="log" aria-live="off" aria-label="RTT 日志输出"></div>
+    <div class="log-input-row">
+      <input id="input-uplink" class="input" type="text" placeholder="上行输入（发送到设备 RTT 通道 0），支持 Enter 发送" autocomplete="off">
+      <button id="btn-send" class="btn btn-primary btn-sm">发送</button>
+    </div>
+  </section>
+
+  <!-- ============ 底部：固件烧录 ============ -->
+  <section class="panel flash-panel">
+    <h2 class="panel-title">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      固件烧录
+    </h2>
+
+    <div class="flash-row">
+      <div class="file-picker">
+        <input type="file" id="file-firmware" class="file-input" accept=".elf,.hex,.bin,.axf">
+        <label for="file-firmware" class="btn btn-secondary file-btn" id="file-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          选择固件文件
+        </label>
+        <span id="file-name" class="file-name">未选择文件</span>
+      </div>
+      <div class="field fwtype-field">
+        <label for="sel-fw-type">固件类型</label>
+        <select id="sel-fw-type" class="select" title="HEX/ELF/AXF 由 J-Link 解析文件内地址；BIN 需选择烧录区域">
+          <option value="auto">自动识别（按扩展名）</option>
+          <option value="bin">BIN · 按区域起始地址</option>
+          <option value="hex">HEX · J-Link 解析地址</option>
+          <option value="elf">ELF · J-Link 解析地址</option>
+          <option value="axf">AXF · J-Link 解析地址</option>
+        </select>
+      </div>
+      <button id="btn-flash" class="btn btn-accent" disabled>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <span id="btn-flash-label">开始烧录</span>
+      </button>
+    </div>
+
+    <div class="flash-row ops-row">
+      <label class="chk" title="向所选区域写入固件">
+        <input type="checkbox" id="chk-program" checked> 烧录
+      </label>
+      <label class="chk" title="擦除所选区域（全量整片走原生整片擦除）">
+        <input type="checkbox" id="chk-erase"> 擦除
+      </label>
+      <span class="ops-hint">可同时勾选，执行时先擦除后烧录</span>
+    </div>
+
+    <div class="region-panel">
+      <div class="region-head">
+        <span class="region-title">烧录区域</span>
+        <button id="btn-add-region" class="btn btn-ghost btn-sm" title="添加自定义区域">＋ 添加区域</button>
+      </div>
+      <div id="region-list" class="region-list"></div>
+      <p class="region-hint">选择 HEX/ELF/AXF 固件后自动解析地址范围并生成「固件区域」；BIN 无内嵌地址，按所选区域<strong>起始地址</strong>烧录。区域用于<strong>擦除</strong>与 BIN 定位</p>
+    </div>
+
+    <div id="flash-progress-wrap" class="progress-wrap" hidden>
+      <div class="progress-head">
+        <span id="flash-stage">准备</span>
+        <span id="flash-percent">0%</span>
+      </div>
+      <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="flash-fill" class="progress-fill"></div>
+      </div>
+      <div id="flash-message" class="flash-message"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ 帮助弹层 ============ -->
+<div id="help-modal" class="modal-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="modal-head">
+      <h2 id="help-title">使用说明</h2>
+      <button class="btn btn-ghost btn-sm" id="btn-help-close" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <ol>
+        <li>选择芯片系列 → 具体型号，选择通讯速率和复位模式</li>
+        <li>点击 <strong>连接</strong>，J-Link 连接目标板并开始接收 RTT 日志</li>
+        <li>日志中设备端 <code>BDSCOL(十进制RGB)</code> 颜色标签会自动渲染为对应颜色</li>
+        <li>底部选择固件文件：<strong>HEX/ELF/AXF</strong> 由 J-Link 解析文件内地址直接烧录；<strong>BIN</strong> 需选择烧录区域（默认「全量整片」，也可添加自定义区域，如 Bootloader）</li>
+        <li>勾选 <strong>擦除 / 烧录</strong> 操作（可同时勾选，先擦除后烧录），点击按钮执行，实时显示进度</li>
+        <li>日志框下方的输入框可向设备 RTT 通道 0 发送指令（上行）</li>
+      </ol>
+      <p class="muted">提示：若连接失败，检查 J-Link 探针连接与芯片型号是否正确；「全量整片」默认从 <code>0x08000000</code>（STM32 主 Flash 起始地址）到所选型号的 Flash 容量末端。</p>
+    </div>
+  </div>
+</div>
+
+<script src="/web/app.js"></script>
+</body>
+</html>
