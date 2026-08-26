@@ -58,6 +58,7 @@ WS_PORT = int(os.getenv("WS_PORT", "8765"))
 READ_INTERVAL = 0.002          # RTT 轮询间隔（秒），与 rtt_tcp_server 一致
 RTT_SEARCH_START = None        # 留空 → J-Link 自动搜索 _SEGGER_RTT
 RTT_SEARCH_RANGE = 0
+FLASH_MAX_ATTEMPTS = 3         # 闪存操作中断性故障（halt/RAMCode 下载失败）的重试次数
 
 ALLOWED_FW_TYPES = ('bin', 'hex', 'elf', 'axf')
 ERASE_FILL_MAX = 0x800000      # 区域擦除（0xFF 填充）单次上限 8MB，防误填超大地块
@@ -329,11 +330,13 @@ class JlinkManager:
             for c in cands:
                 if _normalize(c) in sup_norm:
                     return sup_norm[_normalize(c)]
-            # 前缀匹配（J-Link 设备名可能带额外信息）
-            cn = _normalize(cands[0])
-            for dev in supported:
-                if _normalize(dev).startswith(cn):
-                    return dev
+            # 前缀匹配（J-Link 设备名可能带额外信息，如封装/温度后缀），
+            # 遍历全部候选：只拿全型号（cands[0]）做前缀永远匹配不上只收短型号的库
+            for c in cands:
+                cn = _normalize(c)
+                for dev in supported:
+                    if _normalize(dev).startswith(cn):
+                        return dev
         return cands[0]  # 兜底: 直接传完整型号
 
     # ---------- 状态 ----------
@@ -363,20 +366,34 @@ class JlinkManager:
 
             # 提前绑定会话，确保连接过程中的错误/状态也定向发送
             self.log_session = session_id
-            device = self.resolve_device(chip)
-            hw = JlinkServer(err_cb=self._err_cb, warn_cb=self._warn_cb,
-                                jlink_lib=JLINK_LIB, chip=device, speed=speed,
-                                interval=READ_INTERVAL,
-                                char_format='asc')
+            # 候选顺序：先试 resolve_device 解析出的设备名（已按 J-Link 数据库匹配，
+            # 如 STM32F407ZGT6 → STM32F407ZG），再兜底原始候选。避免把带封装/温度后缀的
+            # 全型号先喂给 DLL 触发 "Unsupported device selected." 报错噪音
+            # （数据库通常只收录短型号，如 GD32 则相反只收全型号）。
+            cands = list(dict.fromkeys([self.resolve_device(chip)] + _device_candidates(chip)))
+            # 逐个尝试期间静默记录错误（不推送红色提示），全部失败后统一返回一次
+            attempt_err = {"msg": None}
+
+            def quiet_err(msg):
+                msg = msg.strip()
+                if msg.startswith("J-Link 连接失败: "):
+                    msg = msg[len("J-Link 连接失败: "):]
+                attempt_err["msg"] = msg
+                log(f"J-Link 尝试失败: {msg}")
+
+            hw = JlinkServer(err_cb=quiet_err, warn_cb=self._warn_cb,
+                             jlink_lib=JLINK_LIB, chip=cands[0], speed=speed,
+                             interval=READ_INTERVAL,
+                             char_format='asc')
 
             # 依次尝试候选设备名
-            last_err = "未知错误"
-            for dev in _device_candidates(chip):
+            last_err = None
+            for dev in cands:
                 try:
                     ok = hw.open(speed=speed, chip=dev, reset=reset,
-                                    start_address=RTT_SEARCH_START,
-                                    range_size=RTT_SEARCH_RANGE,
-                                    sn=None)
+                                 start_address=RTT_SEARCH_START,
+                                 range_size=RTT_SEARCH_RANGE,
+                                 sn=None)
                     if ok:
                         device = dev
                         break
@@ -390,9 +407,11 @@ class JlinkManager:
                 except Exception:
                     pass
                 self.log_session = None
-                log(f"J-Link 连接失败: {last_err}")
-                return {"ok": False, "error": "连接失败: %s" % last_err}
+                err_msg = last_err or attempt_err["msg"] or "未知错误"
+                log(f"J-Link 连接失败: {err_msg}")
+                return {"ok": False, "error": "连接失败: %s" % err_msg}
 
+            hw.err_cb = self._err_cb  # 连接成功后恢复实时错误回调（RTT 读取等错误仍推送给会话）
             self.hw = hw
             self.chip = chip
             self.speed = speed
@@ -559,57 +578,97 @@ class JlinkManager:
                                  session_id=session_id)
                         return
 
-                    done = []
-
-                    # 1) 擦除（先擦后烧，保证干净起始状态）
-                    if erase:
-                        if full_chip:
-                            hub.send({"type": "flash", "stage": "擦除", "percent": 0,
-                                           "message": "正在整片擦除（Mass Erase）…"},
-                                          session_id=session_id)
-                            hw.jlink.erase()
-                            done.append('整片擦除')
-                        else:
-                            size = rend - rstart
-                            hub.send({"type": "flash", "stage": "擦除", "percent": 0,
-                                           "message": f"正在擦除区域 0x{rstart:08X}~0x{rend:08X}…"},
-                                          session_id=session_id)
-                            # 无按区域擦除的公开 API：以 0xFF 填充整块区域，
-                            # 经 flash loader 擦除扇区并编程，结果与擦除一致
-                            hw.jlink.flash(b'\xff' * size, rstart, on_progress=progress)
-                            done.append(f'区域擦除 0x{rstart:08X}~0x{rend:08X}')
-
-                    # 2) 烧录
-                    if program:
-                        if file_type == 'bin':
-                            if os.path.getsize(firmware_path) > (rend - rstart):
-                                raise RuntimeError(
-                                    f"固件大小 {os.path.getsize(firmware_path)} 字节"
-                                    f"超出区域容量 {rend - rstart} 字节")
-                            result = hw.jlink.flash_file(path=firmware_path, addr=rstart,
-                                                         on_progress=progress)
-                        else:
-                            # ELF/HEX/AXF：J-Link 解析文件内地址，addr 被忽略
-                            result = hw.jlink.flash_file(path=firmware_path, addr=0,
-                                                         on_progress=progress)
-                        done.append('烧录')
-
-                    # 3) 收尾：烧录后自动复位让新固件直接运行；仅擦除不复位
-                    if program:
+                    # 擦除/烧录前暂停 RTT：RTT 启动后 J-Link 会在后台持续轮询
+                    # 目标 RAM 缓冲，与 RAMCode 下载竞争同一调试口，偶发
+                    # "Verification of RAMCode failed"；操作结束后恢复，日志不间断
+                    rtt_was_running = hw._rtt_started
+                    if rtt_was_running:
                         try:
-                            hw.jlink.reset(ms=10, halt=False)
-                            time.sleep(0.2)
-                            msg = '完成并已复位'
-                            log(f"{'、'.join(done)}完成并已复位 (返回值 {result})")
-                        except Exception as e:
-                            msg = f'完成（返回值 {result}），但复位失败: {e}'
-                            log(msg)
-                    else:
-                        msg = '完成'
-                        log(f"{'、'.join(done)}{msg}")
-                    hub.send({"type": "flash_done", "ok": True,
-                                   "message": f"{'、'.join(done)}{msg}"},
-                                  session_id=session_id)
+                            hw.jlink.rtt_stop()
+                        except Exception:
+                            pass
+                        hw._rtt_started = False
+
+                    try:
+                        # 中断性故障自动重试：本套探针偶发 halt / RAMCode 下载失败
+                        # （"Verification of RAMCode failed"），失败后复位并暂停内核重试
+                        last_err = None
+                        for attempt in range(1, FLASH_MAX_ATTEMPTS + 1):
+                            if attempt > 1:
+                                log(f"闪存操作第 {attempt - 1} 次尝试失败，复位后重试"
+                                    f"（{attempt}/{FLASH_MAX_ATTEMPTS}）")
+                                try:
+                                    hw.jlink.reset(ms=10, halt=True)
+                                except Exception:
+                                    pass
+                                time.sleep(0.3)
+                            try:
+                                done = []
+
+                                # 1) 擦除（先擦后烧，保证干净起始状态）
+                                if erase:
+                                    if full_chip:
+                                        hub.send({"type": "flash", "stage": "擦除", "percent": 0,
+                                                       "message": "正在整片擦除（Mass Erase）…"},
+                                                      session_id=session_id)
+                                        hw.jlink.erase()
+                                        done.append('整片擦除')
+                                    else:
+                                        size = rend - rstart
+                                        hub.send({"type": "flash", "stage": "擦除", "percent": 0,
+                                                       "message": f"正在擦除区域 0x{rstart:08X}~0x{rend:08X}…"},
+                                                      session_id=session_id)
+                                        # 无按区域擦除的公开 API：以 0xFF 填充整块区域，
+                                        # 经 flash loader 擦除扇区并编程，结果与擦除一致
+                                        hw.jlink.flash(b'\xff' * size, rstart, on_progress=progress)
+                                        done.append(f'区域擦除 0x{rstart:08X}~0x{rend:08X}')
+
+                                # 2) 烧录
+                                if program:
+                                    if file_type == 'bin':
+                                        if os.path.getsize(firmware_path) > (rend - rstart):
+                                            raise RuntimeError(
+                                                f"固件大小 {os.path.getsize(firmware_path)} 字节"
+                                                f"超出区域容量 {rend - rstart} 字节")
+                                        result = hw.jlink.flash_file(path=firmware_path, addr=rstart,
+                                                                     on_progress=progress)
+                                    else:
+                                        # ELF/HEX/AXF：J-Link 解析文件内地址，addr 被忽略
+                                        result = hw.jlink.flash_file(path=firmware_path, addr=0,
+                                                                     on_progress=progress)
+                                    done.append('烧录')
+
+                                # 3) 收尾：烧录后自动复位让新固件直接运行；仅擦除不复位
+                                if program:
+                                    try:
+                                        hw.jlink.reset(ms=10, halt=False)
+                                        time.sleep(0.2)
+                                        msg = '完成并已复位'
+                                        log(f"{'、'.join(done)}完成并已复位 (返回值 {result})")
+                                    except Exception as e:
+                                        msg = f'完成（返回值 {result}），但复位失败: {e}'
+                                        log(msg)
+                                else:
+                                    msg = '完成'
+                                    log(f"{'、'.join(done)}{msg}")
+                                break
+                            except Exception as e:
+                                last_err = e
+                                log(f"闪存操作第 {attempt} 次尝试失败: {e}")
+                        else:
+                            raise last_err
+                        hub.send({"type": "flash_done", "ok": True,
+                                       "message": f"{'、'.join(done)}{msg}"},
+                                      session_id=session_id)
+                    finally:
+                        # 恢复 RTT（无论擦除/烧录成败），与 connect 的启动顺序一致
+                        if rtt_was_running:
+                            try:
+                                hw.jlink.swo_flush()
+                                hw.jlink.rtt_start(None)
+                                hw._rtt_started = True
+                            except Exception:
+                                pass
             except pylink.errors.JLinkException as e:
                 hub.send({"type": "flash_done", "ok": False, "message": f"操作失败: {e}"},
                               session_id=session_id)
