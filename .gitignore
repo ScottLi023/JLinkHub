@@ -1,0 +1,29 @@
+# ============ Python ============
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ============ 虚拟环境 ============
+.venv/
+venv/
+env/
+
+# ============ 固件 / 日志 ============
+*.elf
+*.hex
+*.bin
+*.log
+
+# ============ 备份 / 临时 ============
+*.bak
+.zcode/
+
+# ============ 编辑器 / 系统 ============
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
