@@ -3,8 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light dark">
 <title>JLinkHub - STM32 J-Link 调试控制台</title>
+<script>
+// 在样式表加载前应用主题，避免首次打开时出现明显的主题闪烁。
+(() => {
+  const key = 'jl_web_theme';
+  let theme = null;
+  try { theme = localStorage.getItem(key); } catch {}
+  if (theme !== 'light' && theme !== 'dark') {
+    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light' : 'dark';
+  }
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+})();
+</script>
 <link rel="stylesheet" href="/web/style.css">
 </head>
 <body>
@@ -22,6 +36,15 @@
       <span class="status-dot" id="status-dot"></span>
       <span id="status-text">未连接</span>
     </div>
+    <button id="btn-theme" class="btn btn-ghost theme-switch" type="button"
+            aria-label="切换到浅色模式" title="切换到浅色模式">
+      <svg id="theme-icon" class="theme-icon" viewBox="0 0 24 24" width="16" height="16"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+      <span id="theme-label">深色</span>
+    </button>
     <button id="btn-help" class="btn btn-ghost btn-sm" aria-label="帮助" title="帮助">?</button>
   </div>
 </header>

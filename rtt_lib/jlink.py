@@ -89,6 +89,31 @@ class JlinkRTT(DeviceBase):
                 pass
             self.jlink.close()
 
+    def restart_rtt(self, start_address: int | None = None,
+                    range_size: int = 0) -> bool:
+        """重新建立 RTT 会话。
+
+        目标 MCU 复位后，原 RTT 控制块和 J-Link 的 RTT 状态可能已经失效；
+        仅调用 target reset 不足以保证后续 rtt_read 立即恢复。
+        """
+        if not self.jlink.opened():
+            return False
+        self._rtt_started = False
+        try:
+            try:
+                self.jlink.rtt_stop()
+            except Exception:
+                pass
+            self.reset_state()
+            addr = self._find_rtt(start_address, range_size)
+            self.jlink.swo_flush()
+            self.jlink.rtt_start(addr)
+            self._rtt_started = True
+            return True
+        except pylink.errors.JLinkException as e:
+            self.err_cb(f"RTT 重启失败: {e}")
+            return False
+
     def is_open(self) -> bool:
         """J-Link 是否已连接。"""
         return self.jlink.opened()

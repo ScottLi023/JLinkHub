@@ -1,10 +1,11 @@
 /* ============================================================
    STM32 J-Link 调试控制台 — 深色科技风
    设计令牌: 背景 #0F172A / 面板 #1E293B / 边框 #334155
-   主色 #2563EB / 成功 #22C55E / 警告 #F59E0B / 错误 #EF4444
+   主色 #2563EB / 成功 #4ADE80 / 警告 #F59E0B / 错误 #F87171
    ============================================================ */
 
 :root {
+  color-scheme: dark;
   --bg: #0F172A;
   --panel: #1E293B;
   --panel-2: #16213A;
@@ -14,15 +15,53 @@
   --text-dim: #94A3B8;
   --primary: #2563EB;
   --primary-hover: #1D4ED8;
-  --success: #22C55E;
+  --success: #4ADE80;
+  --success-text: #4ADE80;
   --warning: #F59E0B;
-  --danger: #EF4444;
+  --danger: #F87171;
   --accent: #F97316;
+  --terminal-bg: #0B1120;
+  --log-ts: #64748B;
+  --mark-bg: rgba(245, 158, 11, 0.3);
+  --mark-text: #FCD34D;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --danger-text: #FCA5A5;
+  --log-info: #4ADE80;
+  --log-warning: #F59E0B;
+  --log-error: #F87171;
   --radius: 10px;
   --radius-sm: 6px;
   --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F8FAFC;
+  --panel: #FFFFFF;
+  --panel-2: #F1F5F9;
+  --border: #CBD5E1;
+  --border-strong: #94A3B8;
+  --text: #0F172A;
+  --text-dim: #475569;
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --success: #16A34A;
+  --success-text: #15803D;
+  --warning: #B45309;
+  --danger: #DC2626;
+  --accent: #EA580C;
+  --terminal-bg: #F1F5F9;
+  --log-ts: #64748B;
+  --mark-bg: rgba(245, 158, 11, 0.24);
+  --mark-text: #92400E;
+  --overlay: rgba(15, 23, 42, 0.42);
+  --danger-text: #B91C1C;
+  --log-info: #15803D;
+  --log-warning: #92400E;
+  --log-error: #B91C1C;
+  --shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,6 +76,24 @@ html, body {
   font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.5;
+}
+
+html,
+body,
+.topbar,
+.panel,
+.status-badge,
+.select,
+.input,
+.combo-input,
+.combo-list,
+.terminal,
+.log-input-row,
+.region-row,
+.modal,
+.toast {
+  transition: background-color 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 body {
@@ -75,6 +132,19 @@ body {
   align-items: center;
   gap: 12px;
 }
+
+.theme-switch {
+  min-height: 44px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.theme-icon {
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.theme-switch:hover .theme-icon { transform: rotate(-12deg); }
 
 .status-badge {
   display: inline-flex;
@@ -340,8 +410,8 @@ body {
 .combo-item.active { box-shadow: inset 2px 0 0 var(--primary); }
 
 .combo-item mark {
-  background: rgba(245, 158, 11, 0.3);
-  color: #FCD34D;
+  background: var(--mark-bg);
+  color: var(--mark-text);
   border-radius: 2px;
   padding: 0 1px;
 }
@@ -413,7 +483,7 @@ body {
   min-height: 0;
   overflow-y: auto;
   padding: 12px 16px;
-  background: #0B1120;
+  background: var(--terminal-bg);
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
@@ -432,7 +502,7 @@ body {
 
 /* 时间戳前缀：弱化显示，不与日志颜色混淆 */
 .terminal .log-line .log-ts {
-  color: #64748B;
+  color: var(--log-ts);
   user-select: none;
   margin-right: 6px;
 }
@@ -592,14 +662,14 @@ body {
   word-break: break-all;
 }
 
-.flash-message.ok { color: var(--success); }
+.flash-message.ok { color: var(--success-text); }
 .flash-message.err { color: var(--danger); }
 
 /* ============ 弹层 ============ */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
@@ -665,8 +735,8 @@ body {
   max-width: 360px;
 }
 
-.toast.ok { border-color: var(--success); color: var(--success); }
-.toast.err { border-color: var(--danger); color: #FCA5A5; }
+.toast.ok { border-color: var(--success); color: var(--success-text); }
+.toast.err { border-color: var(--danger); color: var(--danger-text); }
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(12px); }
@@ -705,6 +775,21 @@ body {
   .file-picker { width: 100%; }
   .fwtype-field { width: 100%; }
   .addr-field { width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    padding: 10px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .topbar-right {
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .theme-switch { padding: 8px 10px; }
 }
 
 /* 减少动画偏好 */

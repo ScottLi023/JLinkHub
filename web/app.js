@@ -49,6 +49,9 @@ const flashMessage = $('flash-message');
 const btnHelp = $('btn-help');
 const helpModal = $('help-modal');
 const btnHelpClose = $('btn-help-close');
+const btnTheme = $('btn-theme');
+const themeIcon = $('theme-icon');
+const themeLabel = $('theme-label');
 
 /* ---------- 状态 ---------- */
 let ws = null;
@@ -66,6 +69,8 @@ const MAX_LINES = 5000;
 // 日志洪峰时 JavaScript 数组持续增长并最终耗尽浏览器内存。
 const MAX_PENDING_LOG_LINES = 10000;
 const MAX_PENDING_LOG_CHARS = 2 * 1024 * 1024;
+const MAX_RESUME_LOG_LINES = 2000;
+const MAX_RESUME_LOG_CHARS = 512 * 1024;
 const textEncoder = new TextEncoder();  // 统计真实字节数（UTF-8）
 
 /* ---------- 会话标识（一对一日志隔离） ----------
@@ -73,6 +78,63 @@ const textEncoder = new TextEncoder();  // 统计真实字节数（UTF-8）
    - 连接 J-Link 时携带 session，后端只把日志/进度推送给该会话
    - 其他打开的网页（不同 session）不会收到日志 */
 const SESSION_KEY = 'jl_web_session';
+const THEME_STORAGE_KEY = 'jl_web_theme';
+
+function getStoredTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    return saved === 'light' || saved === 'dark' ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+let currentTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+let hasManualTheme = !!getStoredTheme();
+
+function updateThemeControl() {
+  const isLight = currentTheme === 'light';
+  themeLabel.textContent = isLight ? '浅色' : '深色';
+  const nextLabel = isLight ? '切换到深色模式' : '切换到浅色模式';
+  btnTheme.setAttribute('aria-label', nextLabel);
+  btnTheme.title = nextLabel;
+  themeIcon.innerHTML = isLight
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/>';
+}
+
+function applyTheme(theme, persist = false) {
+  currentTheme = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = currentTheme;
+  document.documentElement.style.colorScheme = currentTheme;
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+      hasManualTheme = true;
+    } catch { /* localStorage 不可用时仍允许本次切换 */ }
+  }
+  updateThemeControl();
+}
+
+function toggleTheme() {
+  applyTheme(currentTheme === 'light' ? 'dark' : 'light', true);
+}
+
+updateThemeControl();
+
+const systemThemeQuery = window.matchMedia
+  ? window.matchMedia('(prefers-color-scheme: light)')
+  : null;
+if (systemThemeQuery) {
+  const handleSystemThemeChange = (event) => {
+    if (!hasManualTheme) applyTheme(event.matches ? 'light' : 'dark');
+  };
+  if (systemThemeQuery.addEventListener) {
+    systemThemeQuery.addEventListener('change', handleSystemThemeChange);
+  } else if (systemThemeQuery.addListener) {
+    systemThemeQuery.addListener(handleSystemThemeChange);
+  }
+}
 
 function generateSessionId() {
   return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -589,9 +651,9 @@ const AUTO_SCROLL_PAUSE_MS = 4000;    // 用户上翻查看历史时暂停跟随
    支持大小写与首字母 [I]/[W]/[E]。若对方已兼容 BDSCOL 颜色渲染（日志带 ANSI 颜色），
    不在此检测。 */
 const LEVEL_COLORS = {
-  'I': [34, 197, 94], 'INFO': [34, 197, 94],          // 绿 #22C55E
-  'W': [245, 158, 11], 'WARNING': [245, 158, 11],     // 黄 #F59E0B
-  'E': [239, 68, 68], 'ERROR': [239, 68, 68],         // 红 #EF4444
+  'I': 'var(--log-info)', 'INFO': 'var(--log-info)',
+  'W': 'var(--log-warning)', 'WARNING': 'var(--log-warning)',
+  'E': 'var(--log-error)', 'ERROR': 'var(--log-error)',
 };
 const LEVEL_PAT = /^\s*(?:\[([A-Za-z]+)\]|([A-Za-z]+):)/i;
 
@@ -686,7 +748,7 @@ function flushLogs() {
   while (pendingLogs.length && rendered < RENDER_BUDGET) {
     const line = pendingLogs.shift();
     pendingLogChars -= line.length;
-    if (line.startsWith('[JLinkHub] 日志洪峰，')) pendingDropNoticeQueued = false;
+    if (line.startsWith('[JLinkHub] ')) pendingDropNoticeQueued = false;
     const div = document.createElement('div');
     div.className = 'log-line';
     appendLineContent(div, line, tsPrefix);
@@ -724,7 +786,7 @@ function appendLineContent(div, line, tsPrefix) {
     const color = detectLevelColor(line);
     if (color) {
       div.insertAdjacentHTML('beforeend',
-        `<span style="color:rgb(${color[0]},${color[1]},${color[2]})">${escapeHtml(line)}</span>`);
+        `<span style="color:${color}">${escapeHtml(line)}</span>`);
     } else {
       div.appendChild(document.createTextNode(line));
     }
@@ -810,7 +872,12 @@ async function doDisconnect() {
 async function doReset() {
   try {
     const r = await api('/api/reset', { method: 'POST' });
-    showToast(r.ok ? '已复位 MCU' : ('复位失败: ' + (r.error || '')), r.ok ? '' : 'err');
+    if (r.ok && r.rtt === false) {
+      showToast(r.warning || 'MCU 已复位，但 RTT 尚未恢复', 'err');
+    } else {
+      showToast(r.ok ? '已复位 MCU，RTT 已重新连接' : ('复位失败: ' + (r.error || '')),
+        r.ok ? '' : 'err');
+    }
   } catch (e) {
     showToast('复位失败: ' + e.message, 'err');
   }
@@ -1226,12 +1293,34 @@ function finalizeFlash(msg) {
 
 /* ---------- 日志工具栏 ---------- */
 
+function compactLogsOnResume() {
+  let dropCount = 0;
+  let dropChars = 0;
+  while (pendingLogs.length - dropCount > MAX_RESUME_LOG_LINES ||
+         pendingLogChars - dropChars > MAX_RESUME_LOG_CHARS) {
+    const line = pendingLogs[dropCount];
+    if (line === undefined) break;
+    dropCount++;
+    dropChars += line.length;
+  }
+  if (!dropCount) return;
+
+  const kept = pendingLogs.slice(dropCount);
+  const notice = `[JLinkHub] 已跳过暂停期间积压的 ${dropCount} 条日志，继续显示最新内容\n`;
+  pendingLogs = [notice, ...kept];
+  pendingLogChars = notice.length + pendingLogChars - dropChars;
+  pendingDropNoticeQueued = true;
+}
+
 btnPause.addEventListener('click', () => {
   paused = !paused;
   btnPause.textContent = paused ? '继续' : '暂停';
   btnPause.classList.toggle('btn-accent', paused);
   if (!paused) {
     autoScrollPausedUntil = 0;
+    // 暂停期间仍会接收 WebSocket 消息。继续时只保留最近内容，避免
+    // 浏览器花很多秒追赶已经失去实时意义的历史日志。
+    compactLogsOnResume();
     flushLogs();
   }
 });
@@ -1288,6 +1377,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') helpModal.
 btnConnect.addEventListener('click', doConnect);
 btnDisconnect.addEventListener('click', doDisconnect);
 btnReset.addEventListener('click', doReset);
+btnTheme.addEventListener('click', toggleTheme);
 btnFlash.addEventListener('click', doFlash);
 chkProgram.addEventListener('change', updateFlashButton);
 chkErase.addEventListener('change', updateFlashButton);

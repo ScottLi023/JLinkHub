@@ -123,7 +123,10 @@ class DeviceBase:
         """重置内部状态（连接前调用）。"""
         self._rx_buf = ''
         self._remain = ''
-        self.data_queue.queue.clear()
+        # Queue.queue 不是公开接口，清空时同时持有 Queue 自己的 mutex，
+        # 避免 RTT 读取线程正在取数据时发生竞态。
+        with self.data_queue.mutex:
+            self.data_queue.queue.clear()
 
     def read_data_queue(self, out: list):
         """从队列取出所有已就绪的数据追加到 out 列表。"""

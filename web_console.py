@@ -613,8 +613,24 @@ class JlinkManager:
                 if hw is None or not hw.is_open():
                     return {"ok": False, "error": "J-Link 未连接"}
                 hw.jlink.reset(ms=10, halt=False)
-            log("MCU 已复位")
-            return {"ok": True}
+
+                # MCU 复位后，目标端的 SEGGER_RTT 控制块会重新初始化，
+                # 旧的 J-Link RTT 会话不能保证继续有效。立即停止并重启 RTT，
+                # 最多等待约 0.5 秒给固件完成 SEGGER_RTT_Init()。
+                rtt_ok = False
+                for _ in range(10):
+                    if hw.restart_rtt(RTT_SEARCH_START, RTT_SEARCH_RANGE):
+                        rtt_ok = True
+                        break
+                    time.sleep(0.05)
+
+                self.converter = ColorConverter()
+            if rtt_ok:
+                log("MCU 已复位，RTT 已重新连接")
+                return {"ok": True, "rtt": True}
+            log("MCU 已复位，但 RTT 重新连接失败")
+            return {"ok": True, "rtt": False,
+                    "warning": "MCU 已复位，但 RTT 重新连接失败，请稍后重试"}
         except Exception as e:
             log(f"MCU 复位失败: {e}")
             return {"ok": False, "error": str(e)}
