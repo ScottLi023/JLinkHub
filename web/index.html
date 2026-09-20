@@ -142,15 +142,26 @@
   </section>
 
   <!-- ============ 底部：固件烧录 ============ -->
-  <section class="panel flash-panel">
-    <h2 class="panel-title">
+  <section class="panel flash-panel" id="flash-panel">
+    <div class="panel-title flash-panel-title">
+      <h2 class="panel-heading">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
       </svg>
       固件烧录
-    </h2>
+      </h2>
+      <button id="btn-flash-toggle" class="btn btn-ghost flash-toggle" type="button"
+              aria-controls="flash-content" aria-expanded="true"
+              aria-label="收起固件烧录区域" title="收起固件烧录区域">
+        <svg class="flash-toggle-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="18 15 12 9 6 15"/>
+        </svg>
+        <span class="flash-toggle-label">收起</span>
+      </button>
+    </div>
 
-    <div class="flash-row">
+    <div id="flash-content" class="flash-content">
+      <div class="flash-row">
       <div class="file-picker">
         <input type="file" id="file-firmware" class="file-input" accept=".elf,.hex,.bin,.axf">
         <label for="file-firmware" class="btn btn-secondary file-btn" id="file-btn">
@@ -177,9 +188,9 @@
         </svg>
         <span id="btn-flash-label">开始烧录</span>
       </button>
-    </div>
+      </div>
 
-    <div class="flash-row ops-row">
+      <div class="flash-row ops-row">
       <label class="chk" title="向所选区域写入固件">
         <input type="checkbox" id="chk-program" checked> 烧录
       </label>
@@ -187,18 +198,18 @@
         <input type="checkbox" id="chk-erase"> 擦除
       </label>
       <span class="ops-hint">可同时勾选，执行时先擦除后烧录</span>
-    </div>
+      </div>
 
-    <div class="region-panel">
+      <div class="region-panel">
       <div class="region-head">
         <span class="region-title">烧录区域</span>
         <button id="btn-add-region" class="btn btn-ghost btn-sm" title="添加自定义区域">＋ 添加区域</button>
       </div>
       <div id="region-list" class="region-list"></div>
       <p class="region-hint">选择 HEX/ELF/AXF 固件后自动解析地址范围并生成「固件区域」；BIN 无内嵌地址，按所选区域<strong>起始地址</strong>烧录。区域用于<strong>擦除</strong>与 BIN 定位</p>
-    </div>
+      </div>
 
-    <div id="flash-progress-wrap" class="progress-wrap" hidden>
+      <div id="flash-progress-wrap" class="progress-wrap" hidden>
       <div class="progress-head">
         <span id="flash-stage">准备</span>
         <span id="flash-percent">0%</span>
@@ -207,6 +218,7 @@
         <div id="flash-fill" class="progress-fill"></div>
       </div>
       <div id="flash-message" class="flash-message"></div>
+      </div>
     </div>
   </section>
 </main>

@@ -46,6 +46,10 @@ const flashStage = $('flash-stage');
 const flashPercent = $('flash-percent');
 const flashFill = $('flash-fill');
 const flashMessage = $('flash-message');
+const flashPanel = $('flash-panel');
+const flashContent = $('flash-content');
+const btnFlashToggle = $('btn-flash-toggle');
+const flashToggleLabel = btnFlashToggle.querySelector('.flash-toggle-label');
 const btnHelp = $('btn-help');
 const helpModal = $('help-modal');
 const btnHelpClose = $('btn-help-close');
@@ -1215,6 +1219,19 @@ function updateFlashButton() {
   btnFlash.disabled = isFlashing || !connected || (needsFile && !selectedFile);
 }
 
+function setFlashCollapsed(collapsed) {
+  if (collapsed && flashContent.contains(document.activeElement)) {
+    btnFlashToggle.focus();
+  }
+  flashPanel.classList.toggle('collapsed', collapsed);
+  btnFlashToggle.setAttribute('aria-expanded', String(!collapsed));
+  btnFlashToggle.setAttribute('aria-label', collapsed ? '展开固件烧录区域' : '收起固件烧录区域');
+  btnFlashToggle.title = collapsed ? '展开固件烧录区域' : '收起固件烧录区域';
+  flashToggleLabel.textContent = collapsed ? '展开' : '收起';
+  flashContent.setAttribute('aria-hidden', String(collapsed));
+  flashContent.inert = collapsed;
+}
+
 async function doFlash() {
   if (isFlashing) { showToast('擦除/烧录正在进行中，请等待完成', 'err'); return; }
   if (!connected) { showToast('请先连接 J-Link', 'err'); return; }
@@ -1378,6 +1395,9 @@ btnConnect.addEventListener('click', doConnect);
 btnDisconnect.addEventListener('click', doDisconnect);
 btnReset.addEventListener('click', doReset);
 btnTheme.addEventListener('click', toggleTheme);
+btnFlashToggle.addEventListener('click', () => {
+  setFlashCollapsed(!flashPanel.classList.contains('collapsed'));
+});
 btnFlash.addEventListener('click', doFlash);
 chkProgram.addEventListener('change', updateFlashButton);
 chkErase.addEventListener('change', updateFlashButton);
@@ -1390,6 +1410,7 @@ btnAddRegion.addEventListener('click', () => {
 /* ---------- 初始化 ---------- */
 
 (async function init() {
+  setFlashCollapsed(false);
   // 获取 WebSocket 端口
   try {
     const cfg = await api('/api/config');
