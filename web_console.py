@@ -702,6 +702,10 @@ class JlinkManager:
                     # 目标 RAM 缓冲，与 RAMCode 下载竞争同一调试口，偶发
                     # "Verification of RAMCode failed"；操作结束后恢复，日志不间断
                     rtt_was_running = hw._rtt_started
+                    # 仅擦除时不能安全恢复 RTT：整片擦除会同时删除目标程序
+                    # 和 _SEGGER_RTT 控制块，J-Link DLL 8.18 在 rtt_start(None)
+                    # 上存在原生段错误风险。只有烧录新固件并复位后才重启 RTT。
+                    restore_rtt = rtt_was_running and program
                     if rtt_was_running:
                         try:
                             hw.jlink.rtt_stop()
@@ -710,6 +714,15 @@ class JlinkManager:
                         hw._rtt_started = False
 
                     try:
+                        # 先让目标停在已知状态，再进入 J-Link 的 RAMCode/擦除路径。
+                        # 目标仍在 Flash 中运行时执行 Mass Erase，在部分 STM32
+                        # + J-Link V8.18 组合上会触发 DLL 原生段错误。
+                        try:
+                            hw.jlink.reset(ms=10, halt=True)
+                            time.sleep(0.1)
+                        except Exception as e:
+                            log(f"擦除/烧录前暂停目标失败，继续尝试: {e}")
+
                         # 中断性故障自动重试：本套探针偶发 halt / RAMCode 下载失败
                         # （"Verification of RAMCode failed"），失败后复位并暂停内核重试
                         last_err = None
@@ -770,6 +783,8 @@ class JlinkManager:
                                         log(msg)
                                 else:
                                     msg = '完成'
+                                    if rtt_was_running:
+                                        msg += '（RTT 已暂停，请重新连接 J-Link）'
                                     log(f"{'、'.join(done)}{msg}")
                                 break
                             except Exception as e:
@@ -781,8 +796,9 @@ class JlinkManager:
                                        "message": f"{'、'.join(done)}{msg}"},
                                       session_id=session_id)
                     finally:
-                        # 恢复 RTT（无论擦除/烧录成败），与 connect 的启动顺序一致
-                        if rtt_was_running:
+                        # 只有烧录新固件后才恢复 RTT。仅擦除可能已经删除
+                        # _SEGGER_RTT 控制块，禁止调用 rtt_start(None) 避免 DLL 段错误。
+                        if restore_rtt:
                             try:
                                 hw.jlink.swo_flush()
                                 hw.jlink.rtt_start(None)
